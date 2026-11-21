@@ -1,0 +1,58 @@
+{% from "_macros.html" import csrf_field %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <meta name="description" content="Nyumba Book records rent for small landlords in Zambia. It does not collect rent.">
+  <meta name="theme-color" content="#0f3d30">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M4 14 L16 4 L28 14 V28 H20 V18 H12 V28 H4 Z" fill="currentColor"/>
+      </svg>
+      {{ app_name }}
+    </a>
+    {% if current_user.is_authenticated %}
+    <nav class="top-links" aria-label="Main">
+      <a href="{{ url_for('main.dashboard') }}" {% if request.endpoint == 'main.dashboard' %}aria-current="page"{% endif %}>Home</a>
+      <a href="{{ url_for('main.properties') }}" {% if request.endpoint in ['main.properties', 'main.property_detail'] %}aria-current="page"{% endif %}>Houses</a>
+      <a href="{{ url_for('main.arrears') }}" {% if request.endpoint == 'main.arrears' %}aria-current="page"{% endif %}>Arrears</a>
+      <a href="{{ url_for('main.income') }}" {% if request.endpoint == 'main.income' %}aria-current="page"{% endif %}>Income</a>
+    </nav>
+    <div class="top-actions">
+      <a href="{{ url_for('auth.account') }}">Account</a>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        {{ csrf_field() }}
+        <button type="submit">Log out</button>
+      </form>
+    </div>
+    {% endif %}
+  </header>
+  <main id="content" class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <p class="flash flash-{{ category }}" role="status">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+    {% if current_user.is_authenticated and current_user.is_sample %}
+      <p class="sample-banner">{{ sample_banner }}</p>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  {% if current_user.is_authenticated %}
+  <nav class="bottom-nav" aria-label="Main">
+    <a href="{{ url_for('main.dashboard') }}" {% if request.endpoint == 'main.dashboard' %}aria-current="page"{% endif %}>Home</a>
+    <a href="{{ url_for('main.properties') }}" {% if request.endpoint in ['main.properties', 'main.property_detail'] %}aria-current="page"{% endif %}>Houses</a>
+    <a href="{{ url_for('main.arrears') }}" {% if request.endpoint == 'main.arrears' %}aria-current="page"{% endif %}>Arrears</a>
+    <a href="{{ url_for('main.income') }}" {% if request.endpoint == 'main.income' %}aria-current="page"{% endif %}>Income</a>
+  </nav>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}Houses · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Houses</h1>
+<p>A house can be one home or a boarding house. Beds and rooms are added inside it.</p>
+{% if properties %}
+  {% for prop in properties %}
+  <article class="person">
+    <h2><a href="{{ url_for('main.property_detail', property_id=prop.id) }}">{{ prop.name }}</a></h2>
+    <p>{{ prop.address }}</p>
+    <p class="help">{{ prop.city }}</p>
+    {% set occupied = prop.units | selectattr('active_tenant') | list | length %}
+    <p>{{ occupied }} of {{ prop.units|length }} beds occupied</p>
+    <a class="btn" href="{{ url_for('main.property_detail', property_id=prop.id) }}">Open beds</a>
+  </article>
+  {% endfor %}
+  <h2>Add another house</h2>
+{% else %}
+  <h2>Add a house</h2>
+{% endif %}
+<form class="card" method="post" action="{{ url_for('main.properties') }}">
+  {{ csrf_field() }}
+  <label for="name">Name</label>
+  <input id="name" name="name" type="text" required placeholder="Kalingalinga boarding house">
+  <label for="address">Address</label>
+  <input id="address" name="address" type="text" required placeholder="Plot, street, area">
+  <label for="city">City</label>
+  <input id="city" name="city" type="text" value="Lusaka">
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes"></textarea>
+  <button class="btn-block" type="submit">Save house</button>
+</form>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import whatsapp_button %}
+{% block title %}Arrears · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Arrears</h1>
+<p>Months that are already due and not fully recorded. A part payment stays here until the rest is written down.</p>
+{% if rows %}
+  {% for row in rows %}
+  <article class="person">
+    <div>
+      <h2><a href="{{ url_for('main.tenant_detail', tenant_id=row.tenant.id) }}">{{ row.tenant.name }}</a></h2>
+      <p>{{ row.tenant.unit.name }} · {{ row.tenant.unit.house.name }}</p>
+      <p class="help">Oldest due {{ row.oldest|pretty_date }} · <a href="tel:{{ row.tenant.phone }}">{{ row.tenant.phone }}</a></p>
+    </div>
+    <p class="owe">{{ row.balance|kwacha }}</p>
+    <a class="btn" href="{{ url_for('main.tenant_detail', tenant_id=row.tenant.id) }}">Record a payment</a>
+    {{ whatsapp_button(row.whatsapp) }}
+  </article>
+  {% endfor %}
+{% else %}
+<p>Nobody owes rent for a month that is already due.</p>
+{% endif %}
+<p class="export-links"><a href="{{ url_for('main.export_arrears') }}">Download arrears (CSV)</a></p>
+{% endblock %}

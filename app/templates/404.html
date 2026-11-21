@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Not found · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>That page is not in your book</h1>
+<p>It may belong to another landlord, or the link is old.</p>
+<p><a class="btn" href="{{ url_for('main.dashboard') }}">Back home</a></p>
+{% endblock %}

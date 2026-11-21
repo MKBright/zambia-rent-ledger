@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}Log in · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>{{ app_name }}</h1>
+<p class="lead">{{ tagline }}</p>
+<p>{{ collect_note }}</p>
+<form class="card" method="post" action="{{ url_for('auth.login') }}">
+  {{ csrf_field() }}
+  <input type="hidden" name="next" value="{{ next_url }}">
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" autocomplete="username" required value="{{ email }}">
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" autocomplete="current-password" required>
+  <label class="check">
+    <input type="checkbox" name="remember" value="yes">
+    Keep me logged in on this phone
+  </label>
+  <button class="btn-block" type="submit">Log in</button>
+</form>
+{% if show_sample %}
+<aside class="sample-banner">
+  <p><strong>Sample book</strong></p>
+  <p>Email <strong>{{ sample_email }}</strong></p>
+  <p>Password <strong>{{ sample_password }}</strong></p>
+  <p>Fictional Lusaka boarding house. Not real tenants. The password is public.</p>
+</aside>
+{% endif %}
+<p><a href="{{ url_for('auth.register') }}">Create your own account</a></p>
+{% endblock %}

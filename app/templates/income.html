@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Income · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Rental income</h1>
+<p>{{ collect_note }}</p>
+<form class="month-pick" method="get" action="{{ url_for('main.income') }}">
+  <label for="month">Month</label>
+  <input id="month" name="month" type="month" value="{{ month_value }}" max="{{ today.strftime('%Y-%m') }}">
+  <button type="submit">Show</button>
+</form>
+
+{% if old_year %}
+<p class="sample-banner">{{ old_year_warning }}</p>
+{% endif %}
+
+<section class="stats">
+  <article class="stat">
+    <span>Rent due in {{ selected.label }}</span>
+    <strong>{{ selected.due|kwacha }}</strong>
+  </article>
+  <article class="stat">
+    <span>Recorded in {{ selected.label }}</span>
+    <strong>{{ selected.recorded|kwacha }}</strong>
+  </article>
+  <article class="stat">
+    <span>Recorded Jan–{{ selected.label }}</span>
+    <strong>{{ ytd_recorded|kwacha }}</strong>
+  </article>
+  <article class="stat">
+    <span>Estimated tax so far</span>
+    <strong>{{ breakdown.total_tax|kwacha }}</strong>
+  </article>
+</section>
+<p class="help">{{ date_note }}</p>
+
+<section class="card">
+  <h2>Tax estimate</h2>
+  <div class="disclaimer">
+    <p>{{ tax_disclaimer }}</p>
+  </div>
+  {% if breakdown.total_tax == 0 %}
+  <p>{{ nil_band_note }}</p>
+  {% endif %}
+  <p>
+    Estimated tax on rent recorded from January through {{ selected.label }}:
+    <strong>{{ breakdown.total_tax|kwacha }}</strong>.
+    This month's recorded receipts add
+    <strong>{{ selected.tax|kwacha }}</strong>
+    to that estimate. The month figure is the extra tax after the free band is used first. It is not this month's rent times 4%.
+  </p>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Band</th>
+          <th scope="col" class="num">Rent in this band</th>
+          <th scope="col">Rate</th>
+          <th scope="col" class="num">Estimate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">First {{ breakdown.free_limit|kwacha_whole }}</th>
+          <td class="num">{{ breakdown.free_slice|kwacha }}</td>
+          <td>0%</td>
+          <td class="num">{{ breakdown.free_tax|kwacha }}</td>
+        </tr>
+        <tr>
+          <th scope="row">From {{ breakdown.free_limit|kwacha_whole }} to {{ breakdown.mid_limit|kwacha_whole }}</th>
+          <td class="num">{{ breakdown.mid_slice|kwacha }}</td>
+          <td>4%</td>
+          <td class="num">{{ breakdown.mid_tax|kwacha }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Above {{ breakdown.mid_limit|kwacha_whole }}</th>
+          <td class="num">{{ breakdown.top_slice|kwacha }}</td>
+          <td>16%</td>
+          <td class="num">{{ breakdown.top_tax|kwacha }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Estimated tax on the year so far</th>
+          <td class="num">{{ breakdown.turnover|kwacha }}</td>
+          <td></td>
+          <td class="num">{{ breakdown.total_tax|kwacha }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    {% if deadline < today %}
+    The {{ selected.label }} return was due by {{ deadline|pretty_date }}. That date has passed. Late returns are filed with ZRA, not in this app.
+    {% else %}
+    A return for {{ selected.label }} is filed by {{ deadline|pretty_date }}. This app does not file it.
+    {% endif %}
+    <a href="{{ zra_url }}" target="_blank" rel="noopener noreferrer">Zambia Revenue Authority</a>
+  </p>
+</section>
+
+{% if show_year_table %}
+<h2>Month by month</h2>
+<div class="scroll">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Month</th>
+        <th scope="col" class="num">Rent due</th>
+        <th scope="col" class="num">Recorded</th>
+        <th scope="col" class="num">Estimated tax</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr {% if row.month == month %}class="current"{% endif %}>
+        <th scope="row">{{ row.label }}</th>
+        <td class="num">{{ row.due|kwacha }}</td>
+        <td class="num">{{ row.recorded|kwacha }}</td>
+        <td class="num">{{ row.tax|kwacha }}</td>
+      </tr>
+      {% endfor %}
+      <tr>
+        <th scope="row">Year so far</th>
+        <td class="num">{{ ytd_due|kwacha }}</td>
+        <td class="num">{{ ytd_recorded|kwacha }}</td>
+        <td class="num">{{ breakdown.total_tax|kwacha }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p class="help">Estimated tax on each month is the extra tax from that month's receipts. Added up, the months match the year-so-far estimate. Repairs and other costs are not subtracted.</p>
+{% else %}
+<p>When you record rent, the year shows up here.</p>
+{% endif %}
+
+<p class="export-links">
+  <a href="{{ url_for('main.export_income', month=month_value) }}">Download this table (CSV)</a>
+  <a href="{{ url_for('main.export_payments', month=month_value) }}">Download this month's payments (CSV)</a>
+</p>
+{% endblock %}
