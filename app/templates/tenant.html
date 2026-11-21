@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field, whatsapp_button %}
+{% block title %}{{ tenant.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('main.property_detail', property_id=tenant.unit.property_id) }}">{{ tenant.unit.house.name }}</a></p>
+<h1>{{ tenant.name }}</h1>
+<p>{{ tenant.unit.name }} · <a href="tel:{{ tenant.phone }}">{{ tenant.phone }}</a></p>
+
+<section class="callout {% if arrears > 0 %}open{% else %}settled{% endif %}">
+  <p class="kicker">Balance</p>
+  <p class="big-amount">{{ balance_phrase(arrears) }}</p>
+  <p class="help">This adds up months that are already due. A part payment leaves the rest here. A credit on one month is not moved to another month.</p>
+  {{ whatsapp_button(whatsapp) }}
+  {% if not whatsapp and arrears > 0 %}
+  <p class="help">Add a Zambian mobile number such as 097… to build a WhatsApp link.</p>
+  {% endif %}
+</section>
+
+<dl class="facts">
+  <div><dt>Rent</dt><dd>{{ tenant.monthly_rent|kwacha }} a month</dd></div>
+  <div><dt>Deposit</dt><dd>{{ tenant.deposit|kwacha }}</dd></div>
+  <div><dt>Moved in</dt><dd>{{ tenant.move_in_date|pretty_date }}</dd></div>
+  {% if tenant.move_out_date %}
+  <div><dt>Moved out</dt><dd>{{ tenant.move_out_date|pretty_date }}</dd></div>
+  {% endif %}
+</dl>
+<p class="help">The deposit is not rent. It is not part of the balance and it is not in the tax estimate.</p>
+
+{% if charges %}
+<section class="card" id="record">
+  <h2>Record a payment</h2>
+  <p>{{ collect_note }}</p>
+  <form method="post" action="{{ url_for('main.payment_create', tenant_id=tenant.id) }}">
+    {{ csrf_field() }}
+    <label for="charge_id">Month this payment covers</label>
+    <select id="charge_id" name="charge_id">
+      {% for charge in charges %}
+      <option value="{{ charge.id }}" {% if default_charge and charge.id == default_charge.id %}selected{% endif %}>
+        {{ charge.period_label }} ({{ balance_phrase(charge.balance) }})
+      </option>
+      {% endfor %}
+    </select>
+    <label for="amount">Amount received (ZMW)</label>
+    <input id="amount" name="amount" inputmode="decimal" required value="{{ default_amount }}">
+    <p class="help">Type a smaller amount for a part payment. Check the amount if you change the month. More than the balance is a credit on that month only.</p>
+    <label for="paid_on">Date the money reached you</label>
+    <input id="paid_on" name="paid_on" type="date" required value="{{ today.isoformat() }}" max="{{ today.isoformat() }}">
+    <fieldset class="methods">
+      <legend>How they paid you</legend>
+      {% for code, label in methods.items() %}
+      <label>
+        <input type="radio" name="method" value="{{ code }}" {% if code == 'cash' %}checked{% endif %}>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </fieldset>
+    <label for="reference">MoMo, Airtel, or bank reference</label>
+    <input id="reference" name="reference" type="text" maxlength="80" autocomplete="off">
+    <p class="help">Required for MTN MoMo, Airtel Money, and bank. Cash can be left blank.</p>
+    <label for="pay-notes">Notes</label>
+    <textarea id="pay-notes" name="notes"></textarea>
+    <button class="btn-block" type="submit">Save payment record</button>
+  </form>
+</section>
+{% endif %}
+
+<h2>The book</h2>
+{% for charge in charges %}
+<article class="month {% if charge.balance > 0 %}open{% elif charge.balance < 0 %}credit{% else %}settled{% endif %} {% if charge.year == today.year and charge.month == today.month %}current{% endif %}">
+  <header>
+    <h3>{{ charge.period_label }}</h3>
+    <p class="status">{{ balance_phrase(charge.balance) }}</p>
+  </header>
+  <dl class="facts">
+    <div><dt>Due</dt><dd>{{ charge.amount_due|kwacha }}</dd></div>
+    <div><dt>Recorded</dt><dd>{{ charge.amount_paid|kwacha }}</dd></div>
+  </dl>
+  <p class="help">Due date {{ charge.due_date|pretty_date }}</p>
+  {% if charge.payments_in_order %}
+  <ul class="pays">
+    {% for payment in charge.payments_in_order %}
+    <li>
+      <a href="{{ url_for('main.receipt', payment_id=payment.id) }}">{{ payment.receipt_no }}</a>
+      {{ payment.paid_on|pretty_date }} · {{ payment.method_label }} · {{ payment.amount|kwacha }}
+      {% if payment.reference %}<span class="ref">{{ payment.reference }}</span>{% endif %}
+      <form class="inline no-print" method="post" action="{{ url_for('main.payment_delete', payment_id=payment.id) }}" onsubmit="return confirm('Remove this payment record?');">
+        {{ csrf_field() }}
+        <button class="btn-quiet" type="submit">Remove</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="help">Nothing recorded for this month yet.</p>
+  {% endif %}
+</article>
+{% endfor %}
+
+<details class="card">
+  <summary>Fix one month's rent due</summary>
+  <p class="help">Use this when you agreed a different amount for one month, for example the month someone moved out. Other months stay as they are.</p>
+  <form method="post" action="{{ url_for('main.charge_edit', tenant_id=tenant.id) }}">
+    {{ csrf_field() }}
+    <label for="fix-charge">Month</label>
+    <select id="fix-charge" name="charge_id">
+      {% for charge in charges %}
+      <option value="{{ charge.id }}">{{ charge.period_label }} — due {{ charge.amount_due|kwacha }}</option>
+      {% endfor %}
+    </select>
+    <label for="amount_due">Rent due (ZMW)</label>
+    <input id="amount_due" name="amount_due" inputmode="decimal" required>
+    <button type="submit">Update that month</button>
+  </form>
+</details>
+
+<details class="card">
+  <summary>Change tenant details</summary>
+  <p class="help">Move-in date stays as first written, so the months already on the book stay put.</p>
+  <form method="post" action="{{ url_for('main.tenant_edit', tenant_id=tenant.id) }}">
+    {{ csrf_field() }}
+    <label for="edit-name">Name</label>
+    <input id="edit-name" name="name" type="text" required value="{{ tenant.name }}">
+    <label for="edit-phone">Phone</label>
+    <input id="edit-phone" name="phone" type="tel" inputmode="tel" required value="{{ tenant.phone }}">
+    <label for="edit-rent">Monthly rent for new months (ZMW)</label>
+    <input id="edit-rent" name="monthly_rent" inputmode="decimal" required value="{{ '%.2f'|format(tenant.monthly_rent) }}">
+    <label for="edit-deposit">Deposit (ZMW)</label>
+    <input id="edit-deposit" name="deposit" inputmode="decimal" required value="{{ '%.2f'|format(tenant.deposit) }}">
+    <label for="edit-notes">Notes</label>
+    <textarea id="edit-notes" name="notes">{{ tenant.notes }}</textarea>
+    <button type="submit">Save tenant</button>
+  </form>
+</details>
+
+{% if not tenant.move_out_date %}
+<details class="card">
+  <summary>Move out</summary>
+  <p class="help">The move-out month stays on the book as a full month. Change that month's rent due if you agreed less. Months after move-out, with no payment, are removed.</p>
+  <form method="post" action="{{ url_for('main.tenant_move_out', tenant_id=tenant.id) }}">
+    {{ csrf_field() }}
+    <label for="move_out_date">Move-out date</label>
+    <input id="move_out_date" name="move_out_date" type="date" required value="{{ today.isoformat() }}" min="{{ tenant.move_in_date.isoformat() }}" max="{{ today.isoformat() }}">
+    <button type="submit">Move out</button>
+  </form>
+</details>
+{% endif %}
+
+<details class="card">
+  <summary>Remove this tenant</summary>
+  <p class="help">Only works when there are no payment records. Otherwise move them out so the book is kept.</p>
+  <form method="post" action="{{ url_for('main.tenant_delete', tenant_id=tenant.id) }}">
+    {{ csrf_field() }}
+    <button class="btn-quiet" type="submit">Remove tenant</button>
+  </form>
+</details>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}Account · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Account</h1>
+<p class="help">Signed in as {{ current_user.email }}</p>
+{% if current_user.is_sample %}
+<p class="sample-banner">This is the public sample login. Register your own account before you record real tenants.</p>
+{% endif %}
+<form class="card" method="post" action="{{ url_for('auth.account') }}">
+  {{ csrf_field() }}
+  <label for="name">Name on receipts</label>
+  <input id="name" name="name" type="text" required value="{{ current_user.name }}">
+  <label for="phone">Your phone</label>
+  <input id="phone" name="phone" type="tel" inputmode="tel" value="{{ current_user.phone }}">
+  <h2>Change password</h2>
+  <p class="help">Leave these blank to keep the current password.</p>
+  <label for="current_password">Current password</label>
+  <input id="current_password" name="current_password" type="password" autocomplete="current-password">
+  <label for="new_password">New password</label>
+  <input id="new_password" name="new_password" type="password" autocomplete="new-password">
+  <label for="confirm">New password again</label>
+  <input id="confirm" name="confirm" type="password" autocomplete="new-password">
+  <button class="btn-block" type="submit">Save account</button>
+</form>
+<section class="card">
+  <h2>Back up the book</h2>
+  <p>The whole book is the file <code>instance/nyumba.db</code> on the computer that runs the app. Copy that file somewhere safe. CSV downloads are a second copy you can open in a spreadsheet.</p>
+</section>
+{% endblock %}

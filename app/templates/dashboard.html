@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "_macros.html" import whatsapp_button %}
+{% block title %}Home · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Hello, {{ current_user.name.split()[0] }}</h1>
+<p>{{ collect_note }}</p>
+
+{% if bed_count == 0 %}
+<section class="card">
+  <h2>Add your first house</h2>
+  <p>Then add a bed or a room for each place you rent out.</p>
+  <a class="btn btn-block" href="{{ url_for('main.properties') }}">Add a house</a>
+</section>
+{% else %}
+<section class="stats">
+  <article class="stat">
+    <span>Rent due this month</span>
+    <strong>{{ selected.due|kwacha }}</strong>
+  </article>
+  <article class="stat">
+    <span>Recorded this month</span>
+    <strong>{{ selected.recorded|kwacha }}</strong>
+  </article>
+  <article class="stat">
+    <span>Beds occupied</span>
+    <strong>{{ occupied }} of {{ bed_count }}</strong>
+  </article>
+  <article class="stat">
+    <span>Tenants in arrears</span>
+    <strong class="{% if arrears_count %}owe{% endif %}">{{ arrears_count }}</strong>
+  </article>
+</section>
+
+{% if selected.due > 0 %}
+<div class="bar" role="img" aria-label="Recorded {{ selected.recorded|kwacha }} of {{ selected.due|kwacha }} due this month">
+  <span style="width: {{ bar_pct }}%"></span>
+</div>
+<p class="help">
+  {% if recorded_over_due %}
+  Recorded more than this month's rent. Some of it may cover older months.
+  {% else %}
+  Recorded {{ selected.recorded|kwacha }} of {{ selected.due|kwacha }} due this month.
+  {% endif %}
+  The arrears list is who still owes a month that is already due.
+</p>
+{% endif %}
+<p class="help">{{ date_note }}</p>
+
+<section class="card deadline">
+  <p>{{ deadline_line }}</p>
+  <p class="help">This app does not file it. The income page has an estimate, not a return.</p>
+  <a href="{{ url_for('main.income') }}">Open the income estimate</a>
+</section>
+
+<section>
+  <h2>Top arrears</h2>
+  {% if arrears %}
+    {% for row in arrears %}
+    <article class="person">
+      <div>
+        <h3><a href="{{ url_for('main.tenant_detail', tenant_id=row.tenant.id) }}">{{ row.tenant.name }}</a></h3>
+        <p>{{ row.tenant.unit.name }} · {{ row.tenant.unit.house.name }}</p>
+        <p class="help">Oldest due {{ row.oldest|pretty_date }} · <a href="tel:{{ row.tenant.phone }}">{{ row.tenant.phone }}</a></p>
+      </div>
+      <p class="owe">{{ row.balance|kwacha }}</p>
+      <a class="btn" href="{{ url_for('main.tenant_detail', tenant_id=row.tenant.id) }}">Open book</a>
+      {{ whatsapp_button(row.whatsapp) }}
+    </article>
+    {% endfor %}
+    {% if arrears_count > arrears|length %}
+    <p><a href="{{ url_for('main.arrears') }}">All {{ arrears_count }} in arrears</a></p>
+    {% endif %}
+  {% else %}
+    <p>Nobody owes rent for a month that is already due.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<p class="export-links">
+  <a href="{{ url_for('main.export_payments') }}">All payments (CSV)</a>
+  <a href="{{ url_for('main.export_arrears') }}">Arrears (CSV)</a>
+</p>
+{% endblock %}

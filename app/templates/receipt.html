@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Payment record {{ payment.receipt_no }} · {{ app_name }}{% endblock %}
+{% block content %}
+<p class="no-print"><a href="{{ url_for('main.tenant_detail', tenant_id=payment.tenant_id) }}">Back to the book</a></p>
+<article class="receipt">
+  <p class="kicker">Payment record · not a ZRA Smart Invoice</p>
+  <div class="disclaimer">
+    <p>{{ receipt_disclaimer }}</p>
+  </div>
+  {% if payment.landlord.is_sample %}
+  <p class="sample-banner">SAMPLE DATA. Fictional tenant. Not a real receipt.</p>
+  {% endif %}
+  <p class="big-amount">{{ payment.amount|kwacha }}</p>
+  <p>Received by the landlord. Not collected by this app.</p>
+  <dl class="facts">
+    <div><dt>Receipt number</dt><dd>{{ payment.receipt_no }}</dd></div>
+    <div><dt>Date paid</dt><dd>{{ payment.paid_on|pretty_date }}</dd></div>
+    <div><dt>Written in the book</dt><dd>{{ payment.recorded_at|pretty_when }} (Lusaka time)</dd></div>
+    <div><dt>Landlord</dt><dd>{{ payment.landlord.name }}{% if payment.landlord.phone %} · {{ payment.landlord.phone }}{% endif %}</dd></div>
+    <div><dt>Tenant</dt><dd>{{ payment.tenant.name }} · {{ payment.tenant.phone }}</dd></div>
+    <div><dt>Place</dt><dd>{{ payment.tenant.unit.house.name }}, {{ payment.tenant.unit.name }}</dd></div>
+    <div><dt>Address</dt><dd>{{ payment.tenant.unit.house.address }}, {{ payment.tenant.unit.house.city }}</dd></div>
+    <div><dt>Month covered</dt><dd>{{ payment.charge.period_label }}</dd></div>
+    <div><dt>How they paid</dt><dd>{{ payment.method_label }}</dd></div>
+    <div><dt>Reference</dt><dd>{% if payment.reference %}{{ payment.reference }}{% else %}No reference (cash){% endif %}</dd></div>
+    <div><dt>Rent due that month</dt><dd>{{ payment.charge.amount_due|kwacha }}</dd></div>
+    <div><dt>Recorded for that month</dt><dd>{{ payment.charge.amount_paid|kwacha }}</dd></div>
+  </dl>
+  {% if payment.charge.balance > 0 %}
+  <p class="owe">Still open for {{ payment.charge.period_label }}: {{ payment.charge.balance|kwacha }}</p>
+  {% elif payment.charge.balance < 0 %}
+  <p>{{ balance_phrase(payment.charge.balance) }} on {{ payment.charge.period_label }}. It stays on this month and is not moved to another month.</p>
+  {% else %}
+  <p class="settled">{{ payment.charge.period_label }} is settled.</p>
+  {% endif %}
+  {% if payment.notes %}<p>{{ payment.notes }}</p>{% endif %}
+  <p class="disclaimer foot">{{ receipt_disclaimer }}</p>
+</article>
+<p class="no-print help">Use Print, then Save as PDF, if you want a file. The browser makes the PDF. This app does not make a Smart Invoice.</p>
+<button class="btn btn-block no-print" type="button" onclick="window.print()">Print or save as PDF</button>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}{{ property.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('main.properties') }}">All houses</a></p>
+<h1>{{ property.name }}</h1>
+<p>{{ property.address }}</p>
+<p class="help">{{ property.city }}</p>
+{% if property.notes %}<p>{{ property.notes }}</p>{% endif %}
+
+<h2>Beds</h2>
+<div class="beds">
+{% for unit in property.units %}
+<article class="bed">
+  <header>
+    <h3>{{ unit.name }}</h3>
+    {% if unit.active_tenant %}
+      {% set owed = unit.active_tenant.arrears_on(today) %}
+      <p>{{ unit.active_tenant.name }}</p>
+      <p>{{ unit.active_tenant.monthly_rent|kwacha }} a month</p>
+      <p class="{% if owed > 0 %}owe{% else %}settled{% endif %}">{{ balance_phrase(owed) }}</p>
+      <a class="btn" href="{{ url_for('main.tenant_detail', tenant_id=unit.active_tenant.id) }}">Open book</a>
+    {% else %}
+      <p class="settled">Empty</p>
+      {% if unit.asking_rent is not none %}
+      <p class="help">Asking {{ unit.asking_rent|kwacha }} a month</p>
+      {% endif %}
+      <details>
+        <summary>Move someone into {{ unit.name }}</summary>
+        <form method="post" action="{{ url_for('main.tenant_move_in', unit_id=unit.id) }}">
+          {{ csrf_field() }}
+          <label for="name-{{ unit.id }}">Tenant name</label>
+          <input id="name-{{ unit.id }}" name="name" type="text" required>
+          <label for="phone-{{ unit.id }}">Phone</label>
+          <input id="phone-{{ unit.id }}" name="phone" type="tel" inputmode="tel" placeholder="0971234567" required>
+          <label for="move-{{ unit.id }}">Move-in date</label>
+          <input id="move-{{ unit.id }}" name="move_in_date" type="date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+          <label for="rent-{{ unit.id }}">Monthly rent (ZMW)</label>
+          <input id="rent-{{ unit.id }}" name="monthly_rent" inputmode="decimal" required value="{% if unit.asking_rent is not none %}{{ '%.2f'|format(unit.asking_rent) }}{% endif %}">
+          <label for="deposit-{{ unit.id }}">Deposit (ZMW)</label>
+          <input id="deposit-{{ unit.id }}" name="deposit" inputmode="decimal" value="0">
+          <p class="help">The deposit is kept separate. It is not rent and it is not in the tax estimate.</p>
+          <label for="notes-{{ unit.id }}">Notes</label>
+          <textarea id="notes-{{ unit.id }}" name="notes"></textarea>
+          <button class="btn-block" type="submit">Move in</button>
+        </form>
+      </details>
+      <form class="inline" method="post" action="{{ url_for('main.unit_delete', unit_id=unit.id) }}">
+        {{ csrf_field() }}
+        <button class="btn-quiet" type="submit">Remove empty bed</button>
+      </form>
+    {% endif %}
+    {% if unit.past_tenants %}
+    <p class="help">Earlier:
+      {% for old in unit.past_tenants %}
+      <a href="{{ url_for('main.tenant_detail', tenant_id=old.id) }}">{{ old.name }}</a>{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </p>
+    {% endif %}
+  </article>
+{% else %}
+<p>No beds yet. Add one below. A boarding house uses one bed per person.</p>
+{% endfor %}
+</div>
+
+<h2>Add a bed or room</h2>
+<form class="card" method="post" action="{{ url_for('main.unit_create', property_id=property.id) }}">
+  {{ csrf_field() }}
+  <label for="bed-name">Name</label>
+  <input id="bed-name" name="name" type="text" required value="{{ suggested_name }}">
+  <label for="asking">Asking rent a month (ZMW)</label>
+  <input id="asking" name="asking_rent" inputmode="decimal" placeholder="900">
+  <p class="help">Optional. You can type a different rent when someone moves in.</p>
+  <button class="btn-block" type="submit">Add bed</button>
+</form>
+
+<details class="card">
+  <summary>Edit this house</summary>
+  <form method="post" action="{{ url_for('main.property_detail', property_id=property.id) }}">
+    {{ csrf_field() }}
+    <label for="house-name">Name</label>
+    <input id="house-name" name="name" type="text" required value="{{ property.name }}">
+    <label for="house-address">Address</label>
+    <input id="house-address" name="address" type="text" required value="{{ property.address }}">
+    <label for="house-city">City</label>
+    <input id="house-city" name="city" type="text" value="{{ property.city }}">
+    <label for="house-notes">Notes</label>
+    <textarea id="house-notes" name="notes">{{ property.notes }}</textarea>
+    <button class="btn-block" type="submit">Save house</button>
+  </form>
+</details>
+{% endblock %}

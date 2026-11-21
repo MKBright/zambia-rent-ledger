@@ -1,0 +1,9 @@
+{% macro csrf_field() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro whatsapp_button(url) -%}
+{% if url %}
+<a class="btn btn-wa btn-block" target="_blank" rel="noopener noreferrer" href="{{ url }}">WhatsApp reminder</a>
+{% endif %}
+{%- endmacro %}
